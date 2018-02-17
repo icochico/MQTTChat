@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">MQTTChat</string>
+    <string name="str_send_message">Send Message</string>
+    <string name="str_message_hint">Type your message here</string>
+</resources>
