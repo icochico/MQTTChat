@@ -8,7 +8,8 @@ package com.icochico.mqttchat;
 
 public interface Config {
 
-    String BROKER_URL = "tcp://preprod-mqtt.aira.io:1883";
-    String TOPIC = "chat/Enrico";
-    String CLIENT_ID = "Enrico";
+    //String MQTT_BROKER_URL = "tcp://preprod-mqtt.aira.io:1883";
+    String MQTT_BROKER_URL = "tcp://10.100.0.184:1883";
+    String TOPIC = "chat/EnricoTest";
+    String CLIENT_ID = "EnricoTest";
 }

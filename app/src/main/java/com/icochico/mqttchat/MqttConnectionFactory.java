@@ -16,42 +16,58 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import java.io.UnsupportedEncodingException;
 
 /**
- * MqttClient.java
+ * MqttConnectionFactory.java
+ *
  * <p>
- * Created by Enrico Casini on 2/17/18.
+ * Created by Enrico Casini on 2/17/18. (enrico.casini@gmail.com)
  */
 
-public class MqttClient {
+public class MqttConnectionFactory {
 
-    private static final String TAG = "MqttClient";
+    private static final String TAG = "MqttConnectionFactory";
 
-    private MqttAndroidClient mqttAndroidClient;
+    /**
+     * Creates a new instance of the MqttAndroidClient
+     *
+     * @param context the Android Context object
+     * @param brokerUrl the URL at which the broker resides
+     * @param clientId a client id
+     *
+     * @return a new instance of the MqttAndroidClient
+     */
+    static MqttAndroidClient newClient(Context context, String brokerUrl, String clientId) {
 
-    public MqttAndroidClient getMqttClient(Context context, String brokerUrl, String clientId) {
-
-        mqttAndroidClient = new MqttAndroidClient(context, brokerUrl, clientId);
+        final MqttAndroidClient client = new MqttAndroidClient(context, brokerUrl, clientId);
         try {
-            IMqttToken token = mqttAndroidClient.connect(getMqttConnectionOption());
+            IMqttToken token = client.connect(getMqttConnectionOption());
             token.setActionCallback(new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
-                    mqttAndroidClient.setBufferOpts(getDisconnectedBufferOptions());
+                    client.setBufferOpts(getDisconnectedBufferOptions());
                     Log.d(TAG, "Success");
                 }
 
                 @Override
-                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                    Log.d(TAG, "Failure " + exception.toString());
+                public void onFailure(IMqttToken asyncActionToken, Throwable t) {
+                    Log.e(TAG, "Failure ", t);
+                    t.printStackTrace();
                 }
             });
         } catch (MqttException e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error during connection ", e);
         }
 
-        return mqttAndroidClient;
+        return client;
     }
 
-    public void disconnect(@NonNull MqttAndroidClient client) throws MqttException {
+    /**
+     * Disconnects the client from the broker.
+     *
+     * @param client the client to be disconnected
+     *
+     * @throws MqttException if failure
+     */
+    public static void disconnect(@NonNull MqttAndroidClient client) throws MqttException {
         IMqttToken mqttToken = client.disconnect();
         mqttToken.setActionCallback(new IMqttActionListener() {
             @Override
@@ -66,8 +82,13 @@ public class MqttClient {
         });
     }
 
+    /**
+     * Creates a new instance of DisconnectedBufferOptions with a common options.
+     *
+     * @return a new instance of DisconnectedBufferOptions with a common options
+     */
     @NonNull
-    private DisconnectedBufferOptions getDisconnectedBufferOptions() {
+    private static DisconnectedBufferOptions getDisconnectedBufferOptions() {
         DisconnectedBufferOptions disconnectedBufferOptions = new DisconnectedBufferOptions();
         disconnectedBufferOptions.setBufferEnabled(true);
         disconnectedBufferOptions.setBufferSize(100);
@@ -76,8 +97,13 @@ public class MqttClient {
         return disconnectedBufferOptions;
     }
 
+    /**
+     * Creates a new instance of MqttConnectOptions with common options.
+     *
+     * @return a new instance of MqttConnectOptions with common options
+     */
     @NonNull
-    private MqttConnectOptions getMqttConnectionOption() {
+    private static MqttConnectOptions getMqttConnectionOption() {
         MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
         mqttConnectOptions.setCleanSession(false);
         mqttConnectOptions.setAutomaticReconnect(true);
@@ -85,7 +111,19 @@ public class MqttClient {
     }
 
 
-    public void publishMessage(@NonNull MqttAndroidClient client, @NonNull String msg, int qos, @NonNull String topic)
+    /**
+     *
+     * Publishes a message through the following MqttClient.
+     *
+     *
+     * @param client the client that needs to publish the message
+     * @param msg a String representing the message
+     * @param qos the desired QoS
+     * @param topic the topic where we want to publish the message
+     * @throws MqttException if failure in publishing
+     * @throws UnsupportedEncodingException if the chosen coding for the message is unsupported.
+     */
+    public static void publishMessage(@NonNull MqttAndroidClient client, @NonNull String msg, int qos, @NonNull String topic)
             throws MqttException, UnsupportedEncodingException {
         byte[] encodedPayload = new byte[0];
         encodedPayload = msg.getBytes("UTF-8");
@@ -96,7 +134,15 @@ public class MqttClient {
         client.publish(topic, message);
     }
 
-    public void subscribe(@NonNull MqttAndroidClient client, @NonNull final String topic, int qos) throws MqttException {
+    /**
+     * Subscribes the client to the specified topic at the specified QoS.
+     *
+     * @param client the client that needs to subscribe
+     * @param topic the topic for the subscription
+     * @param qos the desired QoS
+     * @throws MqttException if failure in subscribing
+     */
+    public static void subscribe(@NonNull MqttAndroidClient client, @NonNull final String topic, int qos) throws MqttException {
         IMqttToken token = client.subscribe(topic, qos);
         token.setActionCallback(new IMqttActionListener() {
             @Override
@@ -112,7 +158,14 @@ public class MqttClient {
         });
     }
 
-    public void unSubscribe(@NonNull MqttAndroidClient client, @NonNull final String topic) throws MqttException {
+    /**
+     * Unsubscribes the client from the specified topic.
+     *
+     * @param client the client to be unsubscribed
+     * @param topic the topic from which we want unsubscribe
+     * @throws MqttException
+     */
+    public static void unSubscribe(@NonNull MqttAndroidClient client, @NonNull final String topic) throws MqttException {
 
         IMqttToken token = client.unsubscribe(topic);
 

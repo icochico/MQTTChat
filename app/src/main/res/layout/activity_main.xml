@@ -10,16 +10,16 @@
         android:id="@+id/btn_send_message"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/tv_received_message"
-        android:layout_alignEnd="@+id/editText"
-        android:layout_alignLeft="@+id/editText"
-        android:layout_alignRight="@+id/editText"
-        android:layout_alignStart="@+id/editText"
+        android:layout_above="@+id/tv_view_message"
+        android:layout_alignEnd="@+id/et_edit_message"
+        android:layout_alignLeft="@+id/et_edit_message"
+        android:layout_alignRight="@+id/et_edit_message"
+        android:layout_alignStart="@+id/et_edit_message"
         android:layout_marginBottom="30dp"
         android:text="@string/str_send_message" />
 
     <TextView
-        android:id="@+id/tv_received_message"
+        android:id="@+id/tv_view_message"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignEnd="@+id/btn_send_message"
@@ -30,7 +30,7 @@
         android:text="" />
 
     <EditText
-        android:id="@+id/editText"
+        android:id="@+id/et_edit_message"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignBottom="@+id/btn_send_message"
