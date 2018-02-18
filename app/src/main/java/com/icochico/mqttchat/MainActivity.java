@@ -99,11 +99,6 @@ public class MainActivity extends AppCompatActivity {
     private void connectAndSubscribe() {
         // connect to server
         mMqttClient = MqttConnectionFactory.newClient(getApplicationContext(), Config.MQTT_BROKER_URL, Config.CLIENT_ID);
-        // display error if unsuccessful
-        if (mMqttClient == null) {
-            Toast.makeText(getApplicationContext(), "Unable to connect to " + Config.MQTT_BROKER_URL, Toast.LENGTH_LONG).show();
-            return;
-        }
 
         mMqttClient.setCallback(new MqttCallbackExtended() {
             @Override
