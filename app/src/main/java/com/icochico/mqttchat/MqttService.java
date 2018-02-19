@@ -24,10 +24,10 @@ public class MqttService extends Service {
 
     private static final String TAG = "MqttService";
 
-    // MqttClient
+    // Mqtt client
     private MqttAndroidClient mMqttClient;
 
-    // Service needs the LocalBroadcastManager, too
+    // LocalBroadcastManager for the Service
     private LocalBroadcastManager mLocalBroadcastManager;
 
     @Override
@@ -53,10 +53,11 @@ public class MqttService extends Service {
 
     /**
      * Attempts a connection to the MQTT broker at the URL specified in Config.MQTT_BROKER_URL.
-     *
+     * <p>
      * If connection is successful, subscribes via callback.
      */
     private void connectAndSubscribe() {
+
         // connect to server
         mMqttClient = MqttConnectionFactory.newClient(getApplicationContext(),
                 Config.MQTT_BROKER_URL,
@@ -74,18 +75,21 @@ public class MqttService extends Service {
                 try {
                     mMqttClient.subscribe(Config.TOPIC, 0, null,
                             new IMqttActionListener() {
-                        @Override
-                        public void onSuccess(IMqttToken asyncActionToken) {
-                            Log.d(TAG, "Subscribed successfully to topic " + Config.TOPIC);
-                        }
+                                @Override
+                                public void onSuccess(IMqttToken asyncActionToken) {
+                                    Log.d(TAG, "Subscribed successfully to topic "
+                                            + Config.TOPIC);
+                                }
 
-                        @Override
-                        public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                            Log.e(TAG, "Subscribe failed for topic " + Config.TOPIC);
-                        }
-                    });
+                                @Override
+                                public void onFailure(IMqttToken asyncActionToken,
+                                                      Throwable exception) {
+                                    Log.e(TAG, "Subscribe failed for topic " + Config.TOPIC);
+                                }
+                            });
 
-                } catch (MqttException ex){
+                }
+                catch (MqttException ex) {
                     Log.e(TAG, "Exception while subscribing ", ex);
                     ex.printStackTrace();
                 }
@@ -115,7 +119,7 @@ public class MqttService extends Service {
     }
 
     /**
-     *  Publishes a message or displays a Toast for the user if failure.
+     * Publishes a message or displays a Toast for the user if failure.
      *
      * @param msg a String containing the message
      */
@@ -130,13 +134,16 @@ public class MqttService extends Service {
 
         try {
             MqttConnectionFactory.publishMessage(mMqttClient, msg, 1, Config.TOPIC);
-        } catch (UnsupportedEncodingException e) {
+            Log.d(TAG, "Published " + msg + " for topic: " + Config.TOPIC);
+        }
+        catch (UnsupportedEncodingException e) {
             String errMsg = "Unsupported encoding ";
             Log.e(TAG, errMsg, e);
             Toast.makeText(getApplicationContext(), errMsg, Toast.LENGTH_LONG).show();
-        } catch (MqttException e) {
+        }
+        catch (MqttException e) {
             String errMsg = "MQTT error while publishing ";
-            Log.e(TAG, errMsg , e);
+            Log.e(TAG, errMsg, e);
             Toast.makeText(getApplicationContext(), errMsg, Toast.LENGTH_LONG).show();
         }
     }

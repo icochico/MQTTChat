@@ -21,9 +21,10 @@ import java.io.UnsupportedEncodingException;
 /**
  * Simple Activity that uses a LocalBroadcastManager that uses an Android Service to connect
  * to a MQTT broker (e.g. mosquitto) and execute the following actions:
+ *
  *  - subscribe to a topic
  *  - publish a message on that topic
- *  - displays the message
+ *  - display the message
  *
  * @author Enrico Casini (enrico.casini@gmail.com) 02/17/2018
  */
@@ -35,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText mEtEditMessage;
     private TextView mTvViewMessage;
 
-    // LocalBroadcastManager
+    // LocalBroadcastManager for the Activity
     private LocalBroadcastManager mLocalBroadcastManager;
 
     @Override
@@ -90,5 +91,11 @@ public class MainActivity extends AppCompatActivity {
 
         // Start service
         startService(new Intent(this, MqttService.class));
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "onDestroy");
     }
 }
