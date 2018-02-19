@@ -43,6 +43,12 @@ public class MqttService extends Service {
                 Log.d(TAG, "Received message with action: " + intent.getAction());
 
                 String msg = intent.getStringExtra(IntentExtras.MESSAGE);
+                if (msg == null) {
+                    Log.e(TAG, "Received null message from "
+                            + MainActivity.class.getSimpleName());
+                    return;
+                }
+
                 publishMessage(msg);
 
             }
