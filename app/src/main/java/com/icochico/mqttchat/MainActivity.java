@@ -1,5 +1,10 @@
 package com.icochico.mqttchat;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -9,19 +14,16 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.eclipse.paho.android.service.MqttAndroidClient;
-import org.eclipse.paho.client.mqttv3.IMqttActionListener;
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.IMqttToken;
-import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.io.UnsupportedEncodingException;
 
 /**
- * Simple Activity that connects to a MQTT broker (e.g. mosquitto), subscribes to a topic, publishes
- * on the specified topic and displays the message
+ * Simple Activity that uses a LocalBroadcastManager that uses an Android Service to connect
+ * to a MQTT broker (e.g. mosquitto) and execute the following actions:
+ *  - subscribe to a topic
+ *  - publish a message on that topic
+ *  - displays the message
  *
  * @author Enrico Casini (enrico.casini@gmail.com) 02/17/2018
  */
@@ -31,23 +33,41 @@ public class MainActivity extends AppCompatActivity {
 
     // Views
     private EditText mEtEditMessage;
-    private Button mBtnSendMessage;
     private TextView mTvViewMessage;
 
-    // MQTT Client
-    private MqttAndroidClient mMqttClient;
+    // LocalBroadcastManager
+    private LocalBroadcastManager mLocalBroadcastManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mBtnSendMessage = findViewById(R.id.btn_send_message);
+        Button mBtnSendMessage = findViewById(R.id.btn_send_message);
         mEtEditMessage = findViewById(R.id.et_edit_message);
         mTvViewMessage = findViewById(R.id.tv_view_message);
 
-        // attempt connection and subscription to MQTT broker
-        connectAndSubscribe();
+        mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
+
+        // Register with local action
+        mLocalBroadcastManager.registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+
+                Log.d(TAG, "Received message with action: " + intent.getAction());
+
+                String msg = intent.getStringExtra(IntentExtras.MESSAGE);
+                if (msg == null) {
+                    Log.e(TAG, "Received null message from "
+                            + MqttService.class.getSimpleName());
+                    return;
+                }
+
+                mTvViewMessage.setText(msg);
+
+            }
+        }, new IntentFilter(Actions.ACTION_RECEIVE_MESSAGE));
 
         // Send message
         mBtnSendMessage.setOnClickListener(new View.OnClickListener() {
@@ -58,94 +78,17 @@ public class MainActivity extends AppCompatActivity {
                 // don't send if msg is empty
                 if (msg.isEmpty()) return;
 
-                // if mqtt client is null, handle gracefully for the user
-                if (mMqttClient == null || !mMqttClient.isConnected()) {
-                    Toast.makeText(getApplicationContext(), "Client is not connected. Unable to send " , Toast.LENGTH_LONG).show();
-                    return;
-                }
+                mLocalBroadcastManager
+                        .sendBroadcast(new Intent(Actions.ACTION_SEND_MESSAGE)
+                                .putExtra(IntentExtras.MESSAGE, msg));
 
-                publishMessage(msg);
+                //clear message after sent
+                mEtEditMessage.getText().clear();
             }
 
         });
+
+        // Start service
+        startService(new Intent(this, MqttService.class));
     }
-
-    /**
-     *  Publishes a message or displays a Toast for the user if failure.
-     *
-     * @param msg a String containing the message
-     */
-    private void publishMessage(String msg) {
-        try {
-            MqttConnectionFactory.publishMessage(mMqttClient, msg, 1, Config.TOPIC);
-            //clear message after sent
-            mEtEditMessage.getText().clear();
-        } catch (UnsupportedEncodingException e) {
-            String errMsg = "Unsupported encoding ";
-            Log.e(TAG, errMsg, e);
-            Toast.makeText(getApplicationContext(), errMsg, Toast.LENGTH_LONG).show();
-        } catch (MqttException e) {
-            String errMsg = "MQTT error while publishing ";
-            Log.e(TAG, errMsg , e);
-            Toast.makeText(getApplicationContext(), errMsg, Toast.LENGTH_LONG).show();
-        }
-    }
-
-    /**
-     * Attempts a connection to the MQTT broker at the URL specified in Config.MQTT_BROKER_URL.
-     *
-     * If connection is successful, subscribes via callback.
-     */
-    private void connectAndSubscribe() {
-        // connect to server
-        mMqttClient = MqttConnectionFactory.newClient(getApplicationContext(), Config.MQTT_BROKER_URL, Config.CLIENT_ID);
-
-        mMqttClient.setCallback(new MqttCallbackExtended() {
-            @Override
-            public void connectComplete(boolean reconnect, String serverURI) {
-
-                // connection was successful
-                String greetMsg = "Connected to " + serverURI;
-                Toast.makeText(getApplicationContext(), greetMsg, Toast.LENGTH_SHORT).show();
-                Log.d(TAG, greetMsg);
-
-                try {
-                    mMqttClient.subscribe(Config.TOPIC, 0, null, new IMqttActionListener() {
-                        @Override
-                        public void onSuccess(IMqttToken asyncActionToken) {
-                            Log.d(TAG, "Subscribed successfully to topic " + Config.TOPIC);
-                        }
-
-                        @Override
-                        public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                            Log.e(TAG, "Subscribe failed for topic " + Config.TOPIC);
-                        }
-                    });
-
-                } catch (MqttException ex){
-                    Log.e(TAG, "Exception while subscribing ", ex);
-                    ex.printStackTrace();
-                }
-            }
-
-            @Override
-            public void connectionLost(Throwable throwable) {
-
-            }
-
-            @Override
-            public void messageArrived(String topic, MqttMessage mqttMessage) throws Exception {
-
-                String message = new String(mqttMessage.getPayload());
-                Log.d(TAG, "Received message: " + message + " for topic: " + topic);
-                mTvViewMessage.setText(message);
-            }
-
-            @Override
-            public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
-
-            }
-        });
-    }
-
 }
